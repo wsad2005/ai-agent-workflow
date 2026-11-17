@@ -1,0 +1,42 @@
+# ai-agent-workflow：唯一的配置与依赖清单。
+# 第一阶段零运行时依赖；第二阶段接入真实模型 function calling，依赖与 01/02 保持同一方案。
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-agent-workflow"
+version = "0.2.0"
+description = "具备工具调用能力的最小 AI Agent（Mock + OpenAI 兼容 function calling，已验证目标：智谱 GLM）"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # .env 加载：轻量、活跃维护、免费（与 01/02 一致）
+    "python-dotenv>=1.0",
+    # HTTP 客户端：轻量、活跃维护、原生超时与连接池（与 01/02 一致；理由见 README「依赖选型记录」）
+    "httpx>=0.28",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ai_agent_workflow"]

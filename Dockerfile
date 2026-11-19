@@ -11,7 +11,6 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 COPY alembic.ini ./
 COPY alembic ./alembic
-COPY frontend ./frontend
 
 RUN python -m pip install --no-cache-dir .
 

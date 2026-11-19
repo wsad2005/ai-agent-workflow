@@ -10,7 +10,8 @@
 import logging
 import os
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -21,7 +22,13 @@ logger = logging.getLogger(__name__)
 MOCK_MODE = "mock"
 REAL_MODE = "real"
 MODES = frozenset({MOCK_MODE, REAL_MODE})
+RULE_PLANNER = "rule"
+LLM_PLANNER = "llm"
+PLANNER_MODES = frozenset({RULE_PLANNER, LLM_PLANNER})
 DEFAULT_TIMEOUT_SECONDS = 30
+
+#: 项目根目录（src/ai_agent_workflow/config.py -> 上两级）
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 @dataclass(frozen=True)
@@ -33,13 +40,40 @@ class Settings:
     api_key: str | None
     generation_model: str | None
     timeout_seconds: int
+    # ---- 平台扩展（v0.3）：应用信息、持久化目录与规划器选择 ----
+    app_name: str = "AI Agent Execution Platform"
+    app_version: str = "0.3.0"
+    environment: str = "development"
+    debug: bool = False
+    log_level: str = "INFO"
+    api_prefix: str = "/api"
+    data_dir: Path = field(default=Path("data"))
+    database_url: str | None = None
+    planner_mode: str = RULE_PLANNER
+
+    @property
+    def ai_configured(self) -> bool:
+        """LLM Planner 是否具备调用条件（三项齐全）。"""
+        return bool(self.base_url and self.api_key and self.generation_model)
+
+    @property
+    def resolved_database_url(self) -> str:
+        """默认 SQLite（DATA_DIR/agent.db）；环境变量可指向 PostgreSQL。"""
+        if self.database_url:
+            return self.database_url
+        db_file = (self.data_dir / "agent.db").as_posix()
+        return f"sqlite:///{db_file}"
+
+    def ensure_directories(self) -> None:
+        """创建运行期必需的目录（幂等）。"""
+        self.data_dir.mkdir(parents=True, exist_ok=True)
 
     def describe(self) -> str:
         """返回可安全打印/记录的配置摘要（不含明文秘密）。"""
         return (
             f"mode={self.mode} generation_model={self.generation_model or '未设置'} "
             f"api_key={mask_secret(self.api_key)} base_url={self.base_url or '未设置'} "
-            f"timeout_seconds={self.timeout_seconds}"
+            f"timeout_seconds={self.timeout_seconds} planner={self.planner_mode}"
         )
 
 
@@ -88,8 +122,15 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
     api_key = _optional(env.get("LLM_API_KEY"))
     generation_model = _optional(env.get("GENERATION_MODEL"))
     timeout_seconds = _parse_timeout(env.get("LLM_TIMEOUT_SECONDS"))
+    planner_mode = (env.get("PLANNER_MODE") or RULE_PLANNER).strip().lower()
+    database_url = _optional(env.get("DATABASE_URL"))
+    data_dir = Path(_optional(env.get("DATA_DIR")) or "data")
     if mode not in MODES:
         raise ConfigError(f"AGENT_MODE 必须是 {MOCK_MODE} 或 {REAL_MODE}，当前为 {mode!r}")
+    if planner_mode not in PLANNER_MODES:
+        raise ConfigError(
+            f"PLANNER_MODE 必须是 {RULE_PLANNER} 或 {LLM_PLANNER}，当前为 {planner_mode!r}"
+        )
     if mode == REAL_MODE:
         values = {
             "LLM_BASE_URL": base_url,
@@ -108,6 +149,9 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         api_key=api_key,
         generation_model=generation_model,
         timeout_seconds=timeout_seconds,
+        data_dir=data_dir,
+        database_url=database_url,
+        planner_mode=planner_mode,
     )
     logger.info("配置加载完成：%s", settings.describe())
     return settings

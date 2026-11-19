@@ -9,3 +9,8 @@ def configure_logging(verbose: bool = False) -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     logging.getLogger().setLevel(logging.DEBUG if verbose else logging.INFO)
+
+
+def get_logger(name: str) -> logging.Logger:
+    """按模块名获取 logger。"""
+    return logging.getLogger(name)

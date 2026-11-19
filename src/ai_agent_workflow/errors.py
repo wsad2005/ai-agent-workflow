@@ -6,54 +6,104 @@
 
 class AgentError(Exception):
     """本项目所有自定义异常的基类。"""
+    status_code = 400
+    code = "agent_error"
 
 
 class ConfigError(AgentError):
     """配置缺失或取值非法（环境变量 / .env）。"""
+    status_code = 400
+    code = "config_error"
 
 
 class EmptyInputError(AgentError):
     """用户输入为空或全部是空白。"""
+    status_code = 422
+    code = "empty_input"
 
 
 class ToolNotFoundError(AgentError):
     """请求的工具未在注册表中。"""
+    status_code = 404
+    code = "tool_not_found"
 
 
 class ToolExecutionError(AgentError):
     """工具执行失败（含表达式无法计算等情况）。"""
+    status_code = 500
+    code = "tool_execution_error"
 
 
 class ModelError(AgentError):
     """模型客户端返回了不符合约定的结果。"""
+    status_code = 502
+    code = "model_error"
+
+
+class PlanningError(AgentError):
+    """规划失败（LLM 输出不合法、未配置或无法解析）。"""
+    status_code = 502
+    code = "planning_error"
+
+
+class TaskStateError(AgentError):
+    """任务状态转换非法。"""
+    status_code = 409
+    code = "invalid_state"
+
+
+class ToolPermissionError(AgentError):
+    """工具权限不足（有副作用的工具未经人工确认）。"""
+    status_code = 403
+    code = "tool_permission"
+
+
+class NotFoundError(AgentError):
+    """资源不存在（任务/工具等）。"""
+    status_code = 404
+    code = "not_found"
 
 
 class AgentRequestError(AgentError):
     """调用模型服务过程中的失败（超时、连接、认证、限流、服务端错误、无效响应）。"""
+    status_code = 502
+    code = "agent_request_error"
 
 
 class AgentTimeoutError(AgentRequestError):
     """请求在限定时间内未得到响应。"""
+    status_code = 504
+    code = "agent_timeout"
 
 
 class AgentConnectionError(AgentRequestError):
     """无法连接到服务地址。"""
+    status_code = 502
+    code = "agent_connection_error"
 
 
 class AgentAuthError(AgentRequestError):
     """API Key 无效或缺少权限。"""
+    status_code = 502
+    code = "agent_auth_error"
 
 
 class AgentRateLimitError(AgentRequestError):
     """触发服务商限流（HTTP 429）。"""
+    status_code = 502
+    code = "agent_rate_limit"
 
 
 class AgentServerError(AgentRequestError):
     """模型服务端内部错误（HTTP 5xx）。"""
+    status_code = 502
+    code = "agent_server_error"
 
 
 class InvalidResponseError(AgentRequestError):
     """服务返回的内容无法解析或不符合约定。"""
+    status_code = 502
+    code = "invalid_response"
 
 
 _FRIENDLY_MESSAGES: dict[type[Exception], str] = {

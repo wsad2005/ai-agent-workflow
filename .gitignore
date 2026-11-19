@@ -45,3 +45,7 @@ $RECYCLE.BIN/
 # 编辑器
 .idea/
 .vscode/
+
+# 双版本验证用的第二虚拟环境与运行时追踪
+.venv311/
+traces.jsonl

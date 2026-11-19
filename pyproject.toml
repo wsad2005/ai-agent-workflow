@@ -14,8 +14,13 @@ requires-python = ">=3.11"
 dependencies = [
     # .env 加载：轻量、活跃维护、免费（与 01/02 一致）
     "python-dotenv>=1.0",
-    # HTTP 客户端：轻量、活跃维护、原生超时与连接池（与 01/02 一致；理由见 README「依赖选型记录」）
+    # HTTP 客户端：轻量、活跃维护、原生超时与连接池（与 01/02 一致）
     "httpx>=0.28",
+    # v0.3 平台化：Web 服务、持久化与迁移
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +42,10 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI 的 Depends 作为参数默认值是其官方推荐写法
+"src/ai_agent_workflow/api/*.py" = ["B008"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["ai_agent_workflow"]

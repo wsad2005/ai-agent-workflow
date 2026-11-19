@@ -6,7 +6,6 @@ real 模式通过 OpenAI 兼容 function calling（已验证目标：智谱 GLM�
 """
 
 import json
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
@@ -16,12 +15,8 @@ import httpx
 from .config import Settings
 from .errors import InvalidResponseError
 from .http_transport import post_json
+from .planner import _TIME_KEYWORDS, extract_expression
 from .tools import Tool
-
-_MATH_CANDIDATE = re.compile(r"[-+*/()0-9.\s]{3,}")
-_HAS_DIGIT = re.compile(r"\d")
-_HAS_OPERATOR = re.compile(r"[-+*/]")
-_TIME_KEYWORDS = ("时间", "几点", "日期")
 
 
 @dataclass(frozen=True)
@@ -66,12 +61,8 @@ class AgentModelClient(Protocol):
 
 
 def _extract_expression(text: str) -> str | None:
-    """从文本中提取首个「像算式」的片段；没有则返回 None。"""
-    for candidate in _MATH_CANDIDATE.findall(text):
-        cleaned = candidate.strip()
-        if _HAS_DIGIT.search(cleaned) and _HAS_OPERATOR.search(cleaned):
-            return cleaned
-    return None
+    """从文本中提取首个「像算式」的片段；没有则返回 None（委托 planner 的规则来源）。"""
+    return extract_expression(text)
 
 
 class MockAgentModelClient:
@@ -100,7 +91,7 @@ class MockAgentModelClient:
         rounds_used = sum(1 for message in messages if message.role == "tool")
         if rounds_used >= self._max_tool_rounds:
             return ModelReply(content=f"[mock] 已完成工具调用，回答你的问题：{last.content}")
-        expression = _extract_expression(last.content)
+        expression = extract_expression(last.content)
         if expression is not None:
             return ModelReply(
                 tool_calls=[ToolCall(name="calculator", arguments={"expression": expression})]
